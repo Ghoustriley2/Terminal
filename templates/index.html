@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Terminal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script>
+    const term = new Terminal();
+    term.open(document.getElementById('terminal'));
+    term.write('Welcome to Web Terminal (Python/Flask backend)\r\n$ ');
+
+    let input = '';
+    term.onKey(e => {
+      const char = e.key;
+      if (char === '\r') {
+        term.write('\r\n');
+        fetch('/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: input })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.stdout) term.write(data.stdout);
+          if (data.stderr) term.write('[Error]: ' + data.stderr + '\r\n');
+          term.write('$ ');
+        });
+        input = '';
+      } else if (char === '\u007F') {
+        if (input.length > 0) {
+          input = input.slice(0, -1);
+          term.write('\b \b');
+        }
+      } else {
+        input += char;
+        term.write(char);
+      }
+    });
+  </script>
+</body>
+</html>
